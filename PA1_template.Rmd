@@ -2,19 +2,244 @@
 
 
 ## Loading and preprocessing the data
+```{r, echo=TRUE}
+activity <- read.csv("activity.csv", header = T)
+nrow(activity)
+```
 
+There are, indeed, `r nrow(activity)` observation in this dataset, with the correct names
+of the columns: `r names(activity)`.  
+
+I have done inline r calculations, that do not show in the html file after knitting (just the results of them),  
+I will repeat those calcualtions in a r chunk for those interested how it was done.
+
+```{r}
+nrow(activity) # number of observations
+names(activity) # names of the columns
+
+head(activity)
+tail(activity)
+```
 
 
 ## What is mean total number of steps taken per day?
 
+1. Histogram of the total number of steps taken each day,  
+     mean of the total number of steps is in red, median in green, normalized in blue.
 
+```{r, fig.width=10, fig.height=10}
+steps.day <- aggregate(steps ~ date, activity, sum)
+
+par(mfrow = c(2, 1))
+h <- hist(steps.day$steps, breaks=max(steps.day$steps)/250, xlab = "steps", main = "Histogram of the total number of steps taken each day")
+xfit<-seq(min(steps.day$steps), max(steps.day$steps), length=40)
+yfit<-dnorm(xfit, mean=mean(steps.day$steps), sd=sd(steps.day$steps))
+yfit <- yfit*diff(h$mids[1:2])*length(steps.day$steps)
+lines(xfit, yfit, col="blue", lwd=2)
+abline(v = mean(steps.day$steps), col = "red", lwd = 6)
+abline(v = median(steps.day$steps), col = "green", lwd =2)
+grid()
+plot(density(steps.day$steps), xlim = c(0, max(steps.day$steps)), xlab = "steps", main = "Density of the total number of steps taken each day")
+abline(v = mean(steps.day$steps), col = "red", lwd = 1)
+abline(v = median(steps.day$steps), col = "green", lwd =1)
+grid()
+```
+
+2. Calculate and report the mean and median total number of steps taken per day
+
+The mean of the total number of steps taken each day is mu = `r mean(steps.day$steps)`.
+
+The median of the total number of steps taken each day is med = `r median(steps.day$steps)`.
+
+```{r}
+mean(steps.day$steps) # mu (mean)
+median(steps.day$steps) # med (median)
+```
 
 ## What is the average daily activity pattern?
 
+1. Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)  
+maximum number of steps is in red
 
+```{r, fig.width=10, fig.height=10}
+interval.mean <- aggregate(steps ~ interval, activity, mean)
+
+interval.maxSteps <- interval.mean[interval.mean$steps == max(interval.mean$steps), ][1]
+avg.maxSteps <- interval.mean[interval.mean$steps == max(interval.mean$steps), ][2]
+
+par(mfrow = c(1,1))
+plot(interval.mean$interval, interval.mean$steps, type = "l", xlab = "5-minute interval", ylab = "avg no. of steps taken averaged across all days", main = "Average number of steps taken")
+abline(v = interval.maxSteps$interval, col = "red")
+```
+
+2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+5-minute interval = `r interval.maxSteps$interval` has the maximum number of steps, averaged across all the days, of avg_max_steps = `r avg.maxSteps$steps` steps.
+
+```{r}
+interval.maxSteps$interval # 5-minute interval that has the maximum number of steps
+avg.maxSteps$steps # max number of steps
+```
 
 ## Imputing missing values
 
+1. Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+
+```{r}
+nrow(activity[is.na(activity), ]) # total number of rows with NAs
+```
+
+Total number of rows with NAs: `r nrow(activity[is.na(activity), ])`. 
+
+```{r}
+length(seq(0, 2355, 5)) # number of intervals in a day
+length(seq(0, 2355, 5))*61 - nrow(activity) # the values that are not there
+length(seq(0, 2355, 5))*61 - nrow(activity) + nrow(activity[is.na(activity), ]) # NAs are added
+```
+
+But, that is not the whole story: some intervals are missing as well,
+even though we are not required to calculate them and impute those missing values. 
+
+Just for the sake of completeness:  
+There are 61 days in our dataset, with `r length(seq(0, 2355, 5))` intervals, which gives us `r length(seq(0, 2355, 5))*61` values for the full dataset.  
+Because we have `r nrow(activity)` values (which includes NAs),
+the number of the values that are really mising is `r length(seq(0, 2355, 5))*61 - nrow(activity) + nrow(activity[is.na(activity), ])`.  
+
+2. Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+
+The missing values are steps across several days, for each interval within the day.  
+I have decided to replace the missing steps for each interval with the mean value for that particular interval. The first step is to index missing values, the second one to factorize intervals (instead of originally having integer value), the third one to replace missing steps with the mean of steps for that particular interval, row by row indexed by missing values.
+
+3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+```{r}
+activity$interval <- factor(activity$interval)
+missing_steps <- is.na(activity$steps)
+activity[missing_steps, "steps"] <- interval.mean[activity[missing_steps, "interval"], "steps"]
+head(activity)
+tail(activity)
+nrow(activity)
+```
+
+Previously, both head and tail of the dataset had NAs, but now everything is correct, with the same number of rows `r nrow(activity)` as the original dataset (with NAs).  
+
+4. Make a histogram of the total number of steps taken each day. What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+The days that had missing values now have the mean number of steps in them, making the histogram taller at the mean/median point, but the spread is the same.
+
+```{r, fig.width=10, fig.height=10}
+steps.day <- aggregate(steps ~ date, activity, sum)
+
+par(mfrow = c(2, 1))
+h <- hist(steps.day$steps, breaks=max(steps.day$steps)/250, xlab = "steps", main = "Histogram of the total number of steps taken each day")
+xfit<-seq(min(steps.day$steps), max(steps.day$steps), length=40)
+yfit<-dnorm(xfit, mean=mean(steps.day$steps), sd=sd(steps.day$steps))
+yfit <- yfit*diff(h$mids[1:2])*length(steps.day$steps)
+lines(xfit, yfit, col="blue", lwd=2)
+abline(v = mean(steps.day$steps), col = "red", lwd = 6)
+abline(v = median(steps.day$steps), col = "green", lwd =2)
+grid()
+plot(density(steps.day$steps), xlim = c(0, max(steps.day$steps)), xlab = "steps", main = "Density of the total number of steps taken each day")
+abline(v = mean(steps.day$steps), col = "red", lwd = 1)
+abline(v = median(steps.day$steps), col = "green", lwd =1)
+grid()
+```
+
+Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment?  
+
+The mean of the total number of steps taken each day is mu = `r mean(steps.day$steps)`.
+
+The median of the total number of steps taken each day is med = `r median(steps.day$steps)`.
+
+Mean and median are now the same, while previously median was 1 step less than the mean.  
 
 
+```{r}
+mean(steps.day$steps) # mu (mean)
+median(steps.day$steps) # med (median)
+```
+  
 ## Are there differences in activity patterns between weekdays and weekends?
+
+1. Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+
+```{r}
+str(activity)
+myDate <- as.Date(activity$date) #change the datatype into date type
+
+weekDay <- weekdays(myDate) # get the names of each day
+weekday.activity <- cbind(activity, weekDay) # add a column with the names of the day
+levels(weekday.activity$weekDay) # check the levels
+```
+
+Change the levels of added column from names of the day into just "weekend" or "weekday", depending on the name of the day (Saturdays and Sundays are weekend, other days are weekday).
+
+```{r}
+levels(weekday.activity$weekDay) <- list(weekday="Friday", weekday="Monday", weekend="Saturday", weekend="Sunday", weekday="Thursday", weekday="Tuesday", weekday="Wednesday")
+levels(weekday.activity$weekDay) # check the levels now
+```
+
+Look at the dataset with the added factor variable.
+
+```{r}
+head(weekday.activity)
+tail(weekday.activity)
+```
+
+2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
+
+```{r, fig.width=10, fig.height=10}
+weekend <- subset(weekday.activity, weekDay == "weekend")
+weekday <- subset(weekday.activity, weekDay == "weekday")
+
+interval.mean.weekend <- aggregate(steps ~ interval, weekend, mean)
+interval.mean.weekday <- aggregate(steps ~ interval, weekday, mean)
+
+interval.maxStepsE <- interval.mean.weekend[interval.mean.weekend$steps == max(interval.mean.weekend$steps), ][1]
+avg.maxStepsE <- interval.mean.weekend[interval.mean.weekend$steps == max(interval.mean.weekend$steps), ][2]
+
+interval.maxStepsW <- interval.mean.weekday[interval.mean.weekday$steps == max(interval.mean.weekday$steps), ][1]
+avg.maxStepsW <- interval.mean.weekday[interval.mean.weekday$steps == max(interval.mean.weekday$steps), ][2]
+
+par(mfrow = c(1, 1))
+def.par <- par(no.readonly = T) # save default
+
+par(mfrow = c(2,1))
+par(mar = c(1.2, 0, 2.2, 0), oma = c(4, 4, 0.5, 0.5))
+plot(interval.mean.weekend$interval, interval.mean.weekend$steps, type = "l", xlab = "5-minute interval", ylab = "Number of steps", main = "Average number of steps taken\nweekend", ylim = c(0,max(interval.mean.weekday$steps)), col = "green")
+abline(v = interval.maxStepsE$interval, h= avg.maxStepsE$steps, col = "green")
+grid()
+plot(interval.mean.weekday$interval, interval.mean.weekday$steps, type = "l", xlab = "5-minute interval", ylab = "Number of steps", main = "weekday", ylim = c(0,max(interval.mean.weekday$steps)), col = "blue")
+abline(v = interval.maxStepsW$interval, h= avg.maxStepsW$steps, col = "blue")
+grid()
+```
+  
+restore default plot parameters par()
+
+```{r}
+par(def.par) # reset to default
+```
+
+plot function does not plot lines correctly (even though it is instructed with type = "l"),  
+so I'll repeat the plot, this time in lattice package.
+
+```{r, fig.width=10, fig.height=10}
+library(lattice)
+xyplot(interval.mean.weekend$steps ~ interval.mean.weekend$interval, type = "l", xlab = "5-minute interval", ylab = "Number of steps", main = "weekend", ylim = c(0,max(interval.mean.weekday$steps)))
+
+xyplot(interval.mean.weekday$steps ~ interval.mean.weekday$interval, type = "l", xlab = "5-minute interval", ylab = "Number of steps", main = "weekday", ylim = c(0,max(interval.mean.weekday$steps)))
+```
+
+On the weekends, the maximum no. of steps occurs at 09:15, 166.64 of them. The mean is  `r mean(interval.mean.weekend$steps)` steps.  
+
+On the weekdays, the maximum no. of steps occurs at 08:35, 230.38 of them. The mean is `r mean(interval.mean.weekday$steps)` steps.
+
+```{r}
+interval.maxStepsE
+avg.maxStepsE
+mean(interval.mean.weekend$steps)
+
+interval.maxStepsW
+avg.maxStepsW
+mean(interval.mean.weekday$steps)
+```

@@ -1,0 +1,24 @@
+3+2
+install.packages("sqldf")
+library(sqldf)
+acs <- read.csv("getdata-data-ss06pid.csv", header = T)
+pwd()
+getwd()
+ls -a
+ls
+pwd
+dir()
+cd Do
+cd Documents
+cd "Documents"
+library(knitr)
+knit2html(PA1_template.Rmd)
+?cd
+getwd()
+setwd("/Users/george/Documents/DataScienceSpecialization/RepData_PeerAssessment1")
+getwd()
+pwd
+dir()
+knit2html(PA1_template.Rmd)
+knit2html(PA1_template.Rmd)
+knit2html('PA1_template.Rmd')

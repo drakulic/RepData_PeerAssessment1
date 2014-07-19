@@ -375,6 +375,19 @@ tail(weekday.activity)
 
 2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
 
+The panel plot similar to the one on the assignment page.
+
+
+```r
+library(lattice)
+steps.byWeekDay <- aggregate(steps ~ interval + weekDay, weekday.activity, mean)
+xyplot(steps ~ interval | weekDay, steps.byWeekDay, type = "l", xlab = "Interval", ylab = "Number of steps", layout = c(1, 2))
+```
+
+![plot of chunk unnamed-chunk-15](figure/unnamed-chunk-15.png) 
+
+Doing the same thing in Base Graphics, just for the fun of it.
+
 
 ```r
 weekend <- subset(weekday.activity, weekDay == "weekend")
@@ -402,7 +415,7 @@ abline(v = interval.maxStepsW$interval, h= avg.maxStepsW$steps, col = "blue")
 grid()
 ```
 
-![plot of chunk unnamed-chunk-15](figure/unnamed-chunk-15.png) 
+![plot of chunk unnamed-chunk-16](figure/unnamed-chunk-16.png) 
   
 restore default plot parameters par()
 
@@ -416,17 +429,16 @@ so I'll repeat the plot, this time in lattice package.
 
 
 ```r
-library(lattice)
 xyplot(interval.mean.weekend$steps ~ interval.mean.weekend$interval, type = "l", xlab = "5-minute interval", ylab = "Number of steps", main = "weekend", ylim = c(0,max(interval.mean.weekday$steps)))
 ```
 
-![plot of chunk unnamed-chunk-17](figure/unnamed-chunk-171.png) 
+![plot of chunk unnamed-chunk-18](figure/unnamed-chunk-181.png) 
 
 ```r
 xyplot(interval.mean.weekday$steps ~ interval.mean.weekday$interval, type = "l", xlab = "5-minute interval", ylab = "Number of steps", main = "weekday", ylim = c(0,max(interval.mean.weekday$steps)))
 ```
 
-![plot of chunk unnamed-chunk-17](figure/unnamed-chunk-172.png) 
+![plot of chunk unnamed-chunk-18](figure/unnamed-chunk-182.png) 
 
 On the weekends, the maximum no. of steps occurs at 09:15, 166.64 of them. The mean is  42.3664 steps.  
 
